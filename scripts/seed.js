@@ -1,6 +1,7 @@
 import { dbService } from '../services/db.service.js'
 import { config } from '../config/index.js'
 import { ObjectId } from 'mongodb'
+import bcrypt from 'bcrypt'
 
 // Instagram demo data
 const DEMO_USERS = [
@@ -190,6 +191,14 @@ const DEMO_POSTS = [
 
 async function seedDatabase() {
     try {
+        // Hash password for amir.avni
+        const saltRounds = 10
+        const hashedPassword = await bcrypt.hash('admin', saltRounds)
+        console.log('Hashed password:', hashedPassword)
+        
+        // Replace fake password with real hash in first user
+        DEMO_USERS[0].password = hashedPassword
+        
         // Connect to database
         await dbService.connect()
         console.log('Connected to database')
@@ -210,6 +219,7 @@ async function seedDatabase() {
         console.log(`Inserted ${DEMO_POSTS.length} posts`)
 
         console.log('Database seeded successfully!')
+        console.log('Login credentials: username: amir.avni, password: admin')
         process.exit(0)
     } catch (err) {
         console.error('Error seeding database:', err)
