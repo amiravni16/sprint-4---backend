@@ -9,7 +9,12 @@ A Node.js backend service for an Instagram clone application. This service provi
 npm install
 ```
 
-2. Start the server:
+2. Seed the database with demo data:
+```bash
+npm run seed
+```
+
+3. Start the server:
 ```bash
 npm run dev     # Development mode with hot reload
 npm start       # Production mode
@@ -28,12 +33,23 @@ npm start       # Production mode
 - `PUT /api/user/:id` - Update user
 - `DELETE /api/user/:id` - Delete user
 
+### Posts
+- `GET /api/post` - Get all posts
+- `GET /api/post/:id` - Get post by ID
+- `POST /api/post` - Create new post
+- `PUT /api/post/:id` - Update post
+- `DELETE /api/post/:id` - Delete post
+- `POST /api/post/:id/msg` - Add comment to post
+- `PUT /api/post/:id/like` - Like/unlike post
+- `DELETE /api/post/:id/msg/:msgId` - Delete comment
+
 ## 🏗️ Project Structure
 
 ```
 api/
 ├── auth/         # Authentication routes and logic
-└── user/         # User management
+├── user/         # User management
+└── post/         # Post management (Instagram posts)
 services/
 ├── db.service.js       # Database connectivity
 ├── socket.service.js   # WebSocket functionality
@@ -101,15 +117,21 @@ npm start
 
 Uses JWT (JSON Web Tokens) for stateless authentication. Tokens are stored in cookies and validated through middleware.
 
+## ✅ Completed
+
+- ✅ Posts API with full CRUD operations
+- ✅ Comments API (as post messages)
+- ✅ Likes API
+- ✅ User profiles with followers/following
+- ✅ WebSocket support for real-time features
+- ✅ MongoDB integration with stable demo data
+
 ## 📝 To-Do
 
-- Add posts API
-- Add comments API
-- Add likes API
-- Add followers/following API
 - Add stories API
 - Add notifications system
 - Add file upload functionality for images
+- Add DMs (direct messages) functionality
 
 ## 📄 License
 

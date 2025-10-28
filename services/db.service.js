@@ -3,7 +3,7 @@ import { MongoClient } from 'mongodb'
 import { config } from '../config/index.js'
 import { logger } from './logger.service.js'
 
-export const dbService = { getCollection }
+export const dbService = { getCollection, connect, getDb }
 
 var dbConn = null
 
@@ -18,14 +18,24 @@ async function getCollection(collectionName) {
     }
 }
 
-async function _connect() {
+async function connect() {
     if (dbConn) return dbConn
 
     try {
         const client = await MongoClient.connect(config.dbURL)
-        return dbConn = client.db(config.dbName)
+        dbConn = client.db(config.dbName)
+        return dbConn
     } catch (err) {
         logger.error('Cannot Connect to DB', err)
         throw err
     }
+}
+
+async function _connect() {
+    if (dbConn) return dbConn
+    return await connect()
+}
+
+function getDb() {
+    return dbConn
 }

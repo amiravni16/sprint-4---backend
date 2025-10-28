@@ -1,6 +1,5 @@
 import { dbService } from '../../services/db.service.js'
 import { logger } from '../../services/logger.service.js'
-import { reviewService } from '../review/review.service.js'
 import { ObjectId } from 'mongodb'
 
 export const userService = {
@@ -10,6 +9,9 @@ export const userService = {
     remove, // Delete (remove user)
     query, // List (of users)
     getByUsername, // Used for Login
+    toggleFollow, // Toggle follow/unfollow
+    savePost, // Save a post
+    unsavePost, // Unsave a post
 }
 
 async function query(filterBy = {}) {
@@ -19,9 +21,12 @@ async function query(filterBy = {}) {
         var users = await collection.find(criteria).toArray()
         users = users.map(user => {
             delete user.password
-            user.createdAt = user._id.getTimestamp()
-            // Returning fake fresh data
-            // user.createdAt = Date.now() - (1000 * 60 * 60 * 24 * 3) // 3 days ago
+            // Handle both ObjectId and string _id
+            if (user._id && typeof user._id === 'object' && user._id.getTimestamp) {
+                user.createdAt = user._id.getTimestamp()
+            } else {
+                user.createdAt = Date.now()
+            }
             return user
         })
         return users
@@ -33,22 +38,19 @@ async function query(filterBy = {}) {
 
 async function getById(userId) {
     try {
-        var criteria = { _id: ObjectId.createFromHexString(userId) }
-
+        let criteria
+        // Try to convert to ObjectId, but handle both ObjectId and string IDs
+        try {
+            criteria = { _id: ObjectId.createFromHexString(userId) }
+        } catch {
+            // If it's not a valid ObjectId hex string, use it as-is (for string IDs like "user1")
+            criteria = { _id: userId }
+        }
+        
         const collection = await dbService.getCollection('user')
         const user = await collection.findOne(criteria)
+        if (!user) throw new Error('User not found')
         delete user.password
-
-        criteria = { byUserId: userId }
-
-        user.givenReviews = await reviewService.query(criteria)
-        // console.log(user.givenReviews)
-
-        user.givenReviews = user.givenReviews.map(review => {
-            delete review.byUser
-            return review
-        })
-
         return user
     } catch (err) {
         logger.error(`while finding user by id: ${userId}`, err)
@@ -69,7 +71,14 @@ async function getByUsername(username) {
 
 async function remove(userId) {
     try {
-        const criteria = { _id: ObjectId.createFromHexString(userId) }
+        const getObjectId = (id) => {
+            try {
+                return ObjectId.createFromHexString(id)
+            } catch {
+                return id
+            }
+        }
+        const criteria = { _id: getObjectId(userId) }
 
         const collection = await dbService.getCollection('user')
         await collection.deleteOne(criteria)
@@ -82,10 +91,22 @@ async function remove(userId) {
 async function update(user) {
     try {
         // peek only updatable properties
+        const getObjectId = (id) => {
+            try {
+                return ObjectId.createFromHexString(id)
+            } catch {
+                return id
+            }
+        }
         const userToSave = {
-            _id: ObjectId.createFromHexString(user._id), // needed for the returnd obj
+            _id: getObjectId(user._id), // needed for the returnd obj
             fullname: user.fullname,
-            score: user.score,
+            username: user.username,
+            imgUrl: user.imgUrl,
+            bio: user.bio,
+            followers: user.followers || [],
+            following: user.following || [],
+            savedPosts: user.savedPosts || [],
         }
         const collection = await dbService.getCollection('user')
         await collection.updateOne({ _id: userToSave._id }, { $set: userToSave })
@@ -103,15 +124,113 @@ async function add(user) {
             username: user.username,
             password: user.password,
             fullname: user.fullname,
-            imgUrl: user.imgUrl,
-            isAdmin: user.isAdmin,
-            score: 100,
+            imgUrl: user.imgUrl || 'https://cdn.pixabay.com/photo/2020/07/01/12/58/icon-5359553_1280.png',
+            isAdmin: user.isAdmin || false,
+            followers: [],
+            following: [],
+            savedPosts: [],
+            bio: user.bio || '',
         }
         const collection = await dbService.getCollection('user')
         await collection.insertOne(userToAdd)
         return userToAdd
     } catch (err) {
         logger.error('cannot add user', err)
+        throw err
+    }
+}
+
+async function toggleFollow(loggedInUserId, userIdToFollow) {
+    try {
+        const collection = await dbService.getCollection('user')
+        
+        // Helper to get ObjectId or use string
+        const getObjectId = (id) => {
+            try {
+                return ObjectId.createFromHexString(id)
+            } catch {
+                return id
+            }
+        }
+        
+        const loggedInUserObjectId = getObjectId(loggedInUserId)
+        const targetUserObjectId = getObjectId(userIdToFollow)
+        
+        const loggedInUser = await collection.findOne({ _id: loggedInUserObjectId })
+        const targetUser = await collection.findOne({ _id: targetUserObjectId })
+        
+        if (!loggedInUser || !targetUser) throw new Error('User not found')
+        
+        const isFollowing = loggedInUser.following?.includes(userIdToFollow) || false
+        
+        // Toggle follow status
+        if (isFollowing) {
+            // Unfollow
+            await collection.updateOne(
+                { _id: loggedInUserObjectId },
+                { $pull: { following: userIdToFollow } }
+            )
+            await collection.updateOne(
+                { _id: targetUserObjectId },
+                { $pull: { followers: loggedInUserId } }
+            )
+        } else {
+            // Follow
+            await collection.updateOne(
+                { _id: loggedInUserObjectId },
+                { $push: { following: userIdToFollow } }
+            )
+            await collection.updateOne(
+                { _id: targetUserObjectId },
+                { $push: { followers: loggedInUserId } }
+            )
+        }
+        
+        return { isFollowing: !isFollowing }
+    } catch (err) {
+        logger.error('Cannot toggle follow', err)
+        throw err
+    }
+}
+
+async function savePost(loggedInUserId, postId) {
+    try {
+        const collection = await dbService.getCollection('user')
+        const getObjectId = (id) => {
+            try {
+                return ObjectId.createFromHexString(id)
+            } catch {
+                return id
+            }
+        }
+        await collection.updateOne(
+            { _id: getObjectId(loggedInUserId) },
+            { $addToSet: { savedPosts: postId } }
+        )
+        return { msg: 'Post saved' }
+    } catch (err) {
+        logger.error('Cannot save post', err)
+        throw err
+    }
+}
+
+async function unsavePost(loggedInUserId, postId) {
+    try {
+        const collection = await dbService.getCollection('user')
+        const getObjectId = (id) => {
+            try {
+                return ObjectId.createFromHexString(id)
+            } catch {
+                return id
+            }
+        }
+        await collection.updateOne(
+            { _id: getObjectId(loggedInUserId) },
+            { $pull: { savedPosts: postId } }
+        )
+        return { msg: 'Post unsaved' }
+    } catch (err) {
+        logger.error('Cannot unsave post', err)
         throw err
     }
 }
@@ -127,10 +246,10 @@ function _buildCriteria(filterBy) {
             {
                 fullname: txtCriteria,
             },
+            {
+                bio: txtCriteria,
+            },
         ]
-    }
-    if (filterBy.minBalance) {
-        criteria.score = { $gte: filterBy.minBalance }
     }
     return criteria
 }

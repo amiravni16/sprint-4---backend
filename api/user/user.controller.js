@@ -46,3 +46,39 @@ export async function updateUser(req, res) {
         res.status(400).send({ err: 'Failed to update user' })
     }
 }
+
+export async function toggleFollowUser(req, res) {
+    try {
+        const loggedInUserId = req.params.loggedInUserId
+        const userIdToFollow = req.params.userIdToFollow
+        const result = await userService.toggleFollow(loggedInUserId, userIdToFollow)
+        res.send(result)
+    } catch (err) {
+        logger.error('Failed to toggle follow', err)
+        res.status(400).send({ err: 'Failed to toggle follow' })
+    }
+}
+
+export async function saveUserPost(req, res) {
+    try {
+        const loggedInUserId = req.params.loggedInUserId
+        const postId = req.params.postId
+        const result = await userService.savePost(loggedInUserId, postId)
+        res.send(result)
+    } catch (err) {
+        logger.error('Failed to save post', err)
+        res.status(400).send({ err: 'Failed to save post' })
+    }
+}
+
+export async function unsaveUserPost(req, res) {
+    try {
+        const loggedInUserId = req.params.loggedInUserId
+        const postId = req.params.postId
+        const result = await userService.unsavePost(loggedInUserId, postId)
+        res.send(result)
+    } catch (err) {
+        logger.error('Failed to unsave post', err)
+        res.status(400).send({ err: 'Failed to unsave post' })
+    }
+}
