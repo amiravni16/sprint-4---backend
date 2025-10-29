@@ -94,17 +94,102 @@ const COMMENT_TEXT_TEMPLATES = [
     'This is goals! 🚀'
 ]
 
-// Large collection of stable Unsplash image IDs (100+ unique images)
-// Using Unsplash Source API format for stable, always-loading images
-// Using Picsum Photos - extremely stable service that always loads
-// Each post gets a unique image seed (postIndex) so all images are different
-// URL format: https://picsum.photos/seed/{seed}/800/800
-// This service is maintained by Lorem Picsum and has 99.9%+ uptime
-function getUniqueImage(postIndex) {
-    // Use postIndex as seed to ensure each post gets a unique, stable image
-    // Picsum Photos uses the seed to generate a deterministic image for that seed
-    // This means the same seed always returns the same image, and different seeds return different images
-    // Service URL format guarantees images will always load
+// Cache for Pexels images to avoid hitting rate limits
+let pexelsImageCache = null
+
+/**
+ * Fetch a collection of high-quality images from Pexels API
+ * These URLs are stable and will always load
+ */
+async function fetchPexelsImages() {
+    const PEXELS_API_KEY = process.env.PEXELS_API_KEY
+    
+    if (!PEXELS_API_KEY) {
+        console.warn('⚠️ PEXELS_API_KEY not set, falling back to Picsum Photos')
+        return null
+    }
+    
+    // If cache exists, return it
+    if (pexelsImageCache) {
+        return pexelsImageCache
+    }
+    
+    try {
+        console.log('📷 Fetching images from Pexels API...')
+        const images = []
+        
+        // Strategy: Fetch fewer requests with more images per request to stay within rate limits
+        // Pexels free tier: ~200 requests/hour, 80 photos per page max
+        // We'll do just 5-6 searches with max per_page to get 400-480 unique images
+        
+        const searchTerms = ['nature', 'city', 'travel', 'food', 'lifestyle', 'technology']
+        const perPage = 80 // Maximum allowed per request
+        
+        for (const term of searchTerms) {
+            try {
+                // Fetch max photos per request to minimize API calls
+                const response = await fetch(`https://api.pexels.com/v1/search?query=${term}&per_page=${perPage}&page=1`, {
+                    headers: {
+                        'Authorization': PEXELS_API_KEY
+                    }
+                })
+                
+                if (!response.ok) {
+                    console.warn(`⚠️ Pexels API error for "${term}": ${response.status}`)
+                    // If we hit rate limit or error, break early and use what we have
+                    if (response.status === 429) {
+                        console.warn('⚠️ Rate limit reached, using images fetched so far')
+                        break
+                    }
+                    continue
+                }
+                
+                const data = await response.json()
+                if (data.photos && Array.isArray(data.photos)) {
+                    // Extract medium-sized image URLs (stable URLs that always load)
+                    data.photos.forEach(photo => {
+                        if (photo.src && photo.src.medium) {
+                            images.push(photo.src.medium) // Medium size (800x1200) perfect for Instagram posts
+                        }
+                    })
+                }
+                
+                // Delay between requests to respect rate limits (200ms = ~5 requests/second, well within limits)
+                await new Promise(resolve => setTimeout(resolve, 200))
+                
+                console.log(`✅ Fetched ${data.photos?.length || 0} images for "${term}" (total so far: ${images.length})`)
+            } catch (err) {
+                console.warn(`⚠️ Error fetching Pexels images for "${term}":`, err.message)
+                // Continue with other searches even if one fails
+            }
+        }
+        
+        if (images.length === 0) {
+            console.warn('⚠️ No Pexels images fetched, falling back to Picsum Photos')
+            return null
+        }
+        
+        console.log(`✅ Total fetched: ${images.length} unique Pexels images (will cycle through for all posts)`)
+        pexelsImageCache = images
+        return images
+    } catch (err) {
+        console.error('❌ Error fetching Pexels images:', err.message)
+        return null
+    }
+}
+
+/**
+ * Get a unique image for each post
+ * Uses Pexels if available, falls back to Picsum Photos
+ */
+async function getUniqueImage(postIndex, pexelsImages) {
+    if (pexelsImages && pexelsImages.length > 0) {
+        // Use Pexels images - cycle through them
+        const imageIndex = postIndex % pexelsImages.length
+        return pexelsImages[imageIndex]
+    }
+    
+    // Fallback to Picsum Photos (always works)
     return `https://picsum.photos/seed/post-${postIndex}/800/800`
 }
 
@@ -204,6 +289,9 @@ export const seedService = {
             console.log('💾 Inserting users...')
             await db.collection('user').insertMany(users)
             
+            // Fetch Pexels images before generating posts
+            const pexelsImages = await fetchPexelsImages()
+            
             // Generate posts (at least 9 per user = 900+ posts)
             console.log('📸 Generating posts (at least 9 per user)...')
             const posts = []
@@ -268,7 +356,7 @@ export const seedService = {
                     
                     posts.push({
                         txt,
-                        imgUrl: getUniqueImage(globalPostIndex), // Use unique image based on post index
+                        imgUrl: await getUniqueImage(globalPostIndex, pexelsImages), // Use unique image based on post index
                         tags: [randomChoice(['nature', 'photography', 'travel', 'food', 'fitness', 'art', 'lifestyle', 'adventure']), 
                                randomChoice(['beautiful', 'amazing', 'inspiring', 'awesome', 'stunning']),
                                randomChoice(['love', 'life', 'happy', 'grateful', 'blessed'])],
