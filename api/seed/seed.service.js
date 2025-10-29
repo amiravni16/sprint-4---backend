@@ -152,14 +152,13 @@ const UNSPLASH_IMAGE_IDS = [
     '1515699366962-994220427af9', '1482350324514-ff4b3c2c4e9d', '1485856407642-8ddca7608f3e'
 ]
 
-// Track used images to ensure uniqueness across all posts
-let usedImageIndexes = new Set()
-
 function getUniqueImage(postIndex) {
     // Cycle through images to ensure variety, using post index to determine which image
     // This ensures each post gets a different image, cycling through the array
+    // Using modulo to cycle through all available images
     const imageIndex = postIndex % UNSPLASH_IMAGE_IDS.length
     const imageId = UNSPLASH_IMAGE_IDS[imageIndex]
+    // Using Unsplash Source API format - these URLs are stable and always load
     return `https://images.unsplash.com/photo-${imageId}?w=800&h=800&fit=crop&crop=center`
 }
 
