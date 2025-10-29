@@ -68,7 +68,64 @@ const POST_TEXT_TEMPLATES = [
     'Creative mode: ON 🎨 {subject}',
     'Morning routine: {activity} before the day begins ☀️',
     'Weekend project: {subject} update 🛠️',
-    'Living my best life! {activity} makes me happy 😊'
+    'Living my best life! {activity} makes me happy 😊',
+    'Today\'s {subject} inspiration ✨',
+    'Nothing beats {activity} at {location} 🏖️',
+    'Fresh start with {subject} this {time} 🌅',
+    'Working hard on {subject}! Progress feels good 💪',
+    'Exploring {location} and loving every second 🌎',
+    '{activity} session complete! Feeling energized 🔥',
+    'New {subject} to share! What do you think? 🤔',
+    'Captured this beautiful moment at {location} 📸',
+    '{time} meditation at {location} 🧘',
+    'Creating something special - {subject} in progress 🎨',
+    'Weekend well spent {activity} 🎉',
+    'Took some time for {activity} today, needed this ⚡',
+    'Working on perfecting my {subject} skills 🚀',
+    'Nothing like {activity} to clear the mind ✨',
+    'Discovered this amazing {location} spot today 🌟',
+    'Morning {activity} routine keeps me going 💫',
+    '{subject} time! Always so therapeutic 🌿',
+    'Sunset vibes at {location} are unmatched 🌅',
+    'Putting in work on this {subject} project 📈',
+    'Found my happy place at {location} 💙',
+    '{activity} helped me unwind today 🎭',
+    'New {subject} coming together nicely! 🎯',
+    'Exploring the beauty of {location} 🌲',
+    'Late {time} {activity} session - worth it! 🌙',
+    'This {subject} means everything to me ❤️',
+    'Weekend adventures at {location} 🎒',
+    '{activity} and good vibes only ☀️',
+    'Working through this {subject} challenge 🧗',
+    'Peaceful {time} moment at {location} 🕊️',
+    'This {activity} was exactly what I needed 🎪',
+    'My latest {subject} creation! So proud 🎨',
+    'Loving this {location} energy right now ⚡',
+    '{time} well spent on {activity} 💎',
+    'Putting final touches on {subject} 🎯',
+    'Beautiful day exploring {location} 🌈',
+    '{activity} with the best company 🎭',
+    'New {subject} unlocked! Excited to share 🔓',
+    'Moment of peace at {location} 🧘',
+    '{time} inspiration from {activity} 💡',
+    'This {subject} journey has been incredible 🌟',
+    'Weekend escape to {location} was perfect 🏝️',
+    '{activity} mode activated! Let\'s go! 🚀',
+    'My {subject} evolution continues 📚',
+    'Early {time} at {location} - pure magic ✨',
+    '{activity} keeps me grounded 🌱',
+    'New {subject} direction, feeling inspired 🎬',
+    'Weekend well spent at {location} 🎊',
+    '{time} thoughts while {activity} 💭',
+    'This {subject} has been in the works 🛠️',
+    'Exploring {location} with fresh eyes 👁️',
+    '{activity} today taught me something new 📖',
+    'Unveiling my latest {subject} project 🎭',
+    'Sunrise vibes at {location} 🌄',
+    '{time} session of {activity} completed ✅',
+    'This {subject} represents a new chapter 📖',
+    'Weekend vibes at {location} couldn\'t be better 🎨',
+    '{activity} and the journey continues... 🗺️'
 ]
 
 const COMMENT_TEXT_TEMPLATES = [
@@ -295,11 +352,11 @@ export const seedService = {
             // Generate posts (at least 9 per user = 900+ posts)
             console.log('📸 Generating posts (at least 9 per user)...')
             const posts = []
-            const activities = ['coding', 'photography', 'hiking', 'cooking', 'working out', 'traveling', 'creating', 'exploring', 'designing', 'building']
-            const subjects = ['project', 'photo', 'artwork', 'design', 'creation', 'work', 'adventure', 'journey']
-            const concepts = ['the journey', 'experiences', 'making memories', 'living fully']
-            const locations = ['the mountains', 'the beach', 'the city', 'nature', 'this place']
-            const times = ['morning', 'afternoon', 'evening', 'sunset', 'sunrise']
+            const activities = ['coding', 'photography', 'hiking', 'cooking', 'working out', 'traveling', 'creating', 'exploring', 'designing', 'building', 'reading', 'writing', 'painting', 'drawing', 'sketching', 'running', 'cycling', 'swimming', 'yoga', 'meditating', 'gardening', 'baking', 'learning', 'teaching', 'dancing', 'singing', 'playing music', 'filming', 'editing', 'planning', 'organizing', 'dreaming', 'thinking', 'reflecting', 'enjoying', 'celebrating', 'relaxing', 'unwinding', 'discovering', 'adventuring']
+            const subjects = ['project', 'photo', 'artwork', 'design', 'creation', 'work', 'adventure', 'journey', 'moment', 'memory', 'experience', 'story', 'chapter', 'idea', 'vision', 'dream', 'goal', 'achievement', 'milestone', 'breakthrough', 'discovery', 'inspiration', 'passion', 'purpose', 'mission', 'vision', 'dream', 'aspiration', 'ambition']
+            const concepts = ['the journey', 'experiences', 'making memories', 'living fully', 'enjoying life', 'finding joy', 'pursuing dreams', 'staying present', 'embracing change', 'seeking adventure', 'growth and learning', 'connecting with others', 'finding balance', 'chasing passions', 'creating art', 'exploring ideas', 'building relationships', 'celebrating moments']
+            const locations = ['the mountains', 'the beach', 'the city', 'nature', 'this place', 'the park', 'the forest', 'the desert', 'the coast', 'the countryside', 'the lake', 'the river', 'the valley', 'the hills', 'downtown', 'the studio', 'home', 'my workspace', 'the garden', 'the trail', 'the path', 'the rooftop', 'the balcony', 'the cafe', 'the library', 'the museum', 'the gallery']
+            const times = ['morning', 'afternoon', 'evening', 'sunset', 'sunrise', 'dawn', 'dusk', 'midday', 'noon', 'night', 'midnight', 'early morning', 'late night', 'today', 'this week', 'this moment', 'right now']
             
             let globalPostIndex = 0 // Track unique post index for image assignment
             
@@ -308,7 +365,10 @@ export const seedService = {
                 const userId = user._id.toString ? user._id.toString() : user._id
                 
                 for (let i = 0; i < postsPerUser; i++) {
-                    const template = randomChoice(POST_TEXT_TEMPLATES)
+                    // Use globalPostIndex to cycle through templates for more variety
+                    const templateIndex = globalPostIndex % POST_TEXT_TEMPLATES.length
+                    const template = POST_TEXT_TEMPLATES[templateIndex]
+                    
                     let txt = template
                         .replace('{time}', randomChoice(times))
                         .replace('{activity}', randomChoice(activities))
@@ -316,9 +376,38 @@ export const seedService = {
                         .replace('{concept}', randomChoice(concepts))
                         .replace('{location}', randomChoice(locations))
                     
-                    // 30% chance to add more text
-                    if (Math.random() < 0.3) {
-                        txt += ' ' + randomChoice(['Can\'t believe how amazing this is!', 'So grateful for this moment.', 'Life is beautiful!', 'What a day!', 'Feeling blessed!'])
+                    // 50% chance to add more text with variety
+                    if (Math.random() < 0.5) {
+                        const additionalTexts = [
+                            'Can\'t believe how amazing this is!', 
+                            'So grateful for this moment.', 
+                            'Life is beautiful!', 
+                            'What a day!', 
+                            'Feeling blessed!',
+                            'Couldn\'t be happier! 😊',
+                            'This made my day! ✨',
+                            'Incredible experience! 🌟',
+                            'Memories for life! 📸',
+                            'So happy with how this turned out! 💫',
+                            'Living in the moment! 🌈',
+                            'Pure joy! 🎉',
+                            'This is why I love {activity}! 💙',
+                            'Never gets old! ⚡',
+                            'Feeling inspired! 🎨',
+                            'Best part of my day! ☀️',
+                            'Simple pleasures! 🌿',
+                            'This brings me peace! 🕊️',
+                            'Can\'t wait to do this again! 🔄',
+                            'This is what happiness looks like! ❤️'
+                        ]
+                        txt += ' ' + randomChoice(additionalTexts)
+                            .replace('{activity}', randomChoice(activities))
+                    }
+                    
+                    // Add variety with emojis occasionally (20% chance)
+                    if (Math.random() < 0.2) {
+                        const emojiEndings = [' 💙', ' ⚡', ' ✨', ' 🌟', ' 💫', ' 🎨', ' 🌈', ' 🌿', ' 🔥', ' 💎']
+                        txt += randomChoice(emojiEndings)
                     }
                     
                     // Generate likes (random up to 99, but not from the post owner)
