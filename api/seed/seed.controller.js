@@ -6,10 +6,12 @@ export async function seedDatabase(req, res) {
         const { token } = req.query
         
         // Protect with secret token from environment variable
-        const secretToken = process.env.SEED_SECRET || 'default-seed-token-change-me'
+        // If SEED_SECRET is not set, allow seeding (for initial setup)
+        // Otherwise require matching token
+        const secretToken = process.env.SEED_SECRET
         
-        if (token !== secretToken) {
-            return res.status(401).json({ error: 'Unauthorized: Invalid seed token' })
+        if (secretToken && token !== secretToken) {
+            return res.status(401).json({ error: 'Unauthorized: Invalid seed token. Set SEED_SECRET in environment variables or use token parameter.' })
         }
         
         const result = await seedService.seedDatabase()
