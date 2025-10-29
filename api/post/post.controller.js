@@ -24,6 +24,16 @@ export async function getPosts(req, res) {
     }
 }
 
+export async function getPostsByUserId(req, res) {
+    try {
+        const posts = await postService.getByUserId(req.params.userId)
+        res.send(posts)
+    } catch (err) {
+        logger.error('Failed to get posts by user ID', err)
+        res.status(400).send({ err: 'Failed to get posts by user ID' })
+    }
+}
+
 export async function savePost(req, res) {
     try {
         const post = req.body

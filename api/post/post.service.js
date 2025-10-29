@@ -21,30 +21,62 @@ async function query(filterBy = {}) {
         const collection = await dbService.getCollection('post')
         var posts = await collection.find(criteria).sort({ createdAt: -1 }).toArray()
         
-        // Populate user data for each post's 'by' field
+        // OPTIMIZATION: Batch fetch all unique user IDs first, then populate in memory
         const usersCollection = await dbService.getCollection('user')
+        const userIdsToFetch = new Set()
+        
+        // Collect all unique user IDs from posts and comments
         for (const post of posts) {
             if (post.by?._id) {
-                // Try to find user by ID - handle both ObjectId and string IDs
-                let user
-                try {
-                    // Try as ObjectId first
-                    user = await usersCollection.findOne({ _id: ObjectId.createFromHexString(post.by._id) })
-                } catch {
-                    // If that fails, try as string
-                    user = await usersCollection.findOne({ _id: post.by._id })
+                const id = post.by._id.toString ? post.by._id.toString() : String(post.by._id)
+                userIdsToFetch.add(id)
+            }
+            if (post.comments) {
+                for (const comment of post.comments) {
+                    if (comment.by?._id) {
+                        const id = comment.by._id.toString ? comment.by._id.toString() : String(comment.by._id)
+                        userIdsToFetch.add(id)
+                    }
                 }
+            }
+        }
+        
+        // Fetch all users in batch (much faster than individual queries)
+        const userIdsArray = Array.from(userIdsToFetch)
+        const usersMap = new Map()
+        
+        if (userIdsArray.length > 0) {
+            // Fetch users matching either ObjectId or string IDs
+            const users = await usersCollection.find({ 
+                $or: [
+                    { _id: { $in: userIdsArray.filter(id => id.length === 24 && /^[0-9a-fA-F]{24}$/.test(id)).map(id => ObjectId.createFromHexString(id)) } },
+                    { _id: { $in: userIdsArray } }
+                ]
+            }).toArray()
+            
+            // Create a map for O(1) lookup
+            for (const user of users) {
+                const id = user._id.toString ? user._id.toString() : String(user._id)
+                usersMap.set(id, user)
+            }
+        }
+        
+        // Populate user data from the map (much faster)
+        for (const post of posts) {
+            if (post.by?._id) {
+                const id = post.by._id.toString ? post.by._id.toString() : String(post.by._id)
+                const user = usersMap.get(id)
                 
                 if (user) {
                     post.by = {
-                        _id: (user._id.toString ? user._id.toString() : user._id),
+                        _id: id,
                         fullname: user.fullname,
                         username: user.username,
                         imgUrl: user.imgUrl
                     }
                 } else {
-                    // Keep original by data if user not found (for backward compatibility)
-                    post.by._id = post.by._id.toString ? post.by._id.toString() : post.by._id
+                    // Keep original by data if user not found
+                    post.by._id = id
                 }
             }
             
@@ -52,26 +84,19 @@ async function query(filterBy = {}) {
             if (post.comments) {
                 for (const comment of post.comments) {
                     if (comment.by?._id) {
-                        // Try to find user by ID - handle both ObjectId and string IDs
-                        let commentUser
-                        try {
-                            // Try as ObjectId first
-                            commentUser = await usersCollection.findOne({ _id: ObjectId.createFromHexString(comment.by._id) })
-                        } catch {
-                            // If that fails, try as string
-                            commentUser = await usersCollection.findOne({ _id: comment.by._id })
-                        }
+                        const id = comment.by._id.toString ? comment.by._id.toString() : String(comment.by._id)
+                        const commentUser = usersMap.get(id)
                         
                         if (commentUser) {
                             comment.by = {
-                                _id: (commentUser._id.toString ? commentUser._id.toString() : commentUser._id),
+                                _id: id,
                                 fullname: commentUser.fullname,
                                 username: commentUser.username,
                                 imgUrl: commentUser.imgUrl
                             }
                         } else {
                             // Keep original by data if user not found
-                            comment.by._id = comment.by._id.toString ? comment.by._id.toString() : comment.by._id
+                            comment.by._id = id
                         }
                     }
                 }
@@ -134,7 +159,95 @@ async function getById(postId) {
 async function getByUserId(userId) {
     try {
         const collection = await dbService.getCollection('post')
-        const posts = await collection.find({ 'by._id': userId }).sort({ createdAt: -1 }).toArray()
+        
+        // Try to find posts matching the userId - handle both ObjectId and string IDs
+        let posts
+        try {
+            // Try as ObjectId first
+            const objectId = ObjectId.createFromHexString(userId)
+            posts = await collection.find({ 'by._id': objectId }).sort({ createdAt: -1 }).toArray()
+            if (posts.length === 0) {
+                // Fallback to string
+                posts = await collection.find({ 'by._id': userId }).sort({ createdAt: -1 }).toArray()
+            }
+        } catch {
+            // If not ObjectId, try as string
+            posts = await collection.find({ 'by._id': userId }).sort({ createdAt: -1 }).toArray()
+        }
+        
+        // Populate user data for posts and comments (using optimized batch method)
+        if (posts.length > 0) {
+            const usersCollection = await dbService.getCollection('user')
+            const userIdsToFetch = new Set()
+            
+            // Collect all unique user IDs
+            for (const post of posts) {
+                if (post.by?._id) {
+                    const id = post.by._id.toString ? post.by._id.toString() : String(post.by._id)
+                    userIdsToFetch.add(id)
+                }
+                if (post.comments) {
+                    for (const comment of post.comments) {
+                        if (comment.by?._id) {
+                            const id = comment.by._id.toString ? comment.by._id.toString() : String(comment.by._id)
+                            userIdsToFetch.add(id)
+                        }
+                    }
+                }
+            }
+            
+            // Batch fetch users
+            const userIdsArray = Array.from(userIdsToFetch)
+            const usersMap = new Map()
+            
+            if (userIdsArray.length > 0) {
+                const users = await usersCollection.find({ 
+                    $or: [
+                        { _id: { $in: userIdsArray.filter(id => id.length === 24 && /^[0-9a-fA-F]{24}$/.test(id)).map(id => ObjectId.createFromHexString(id)) } },
+                        { _id: { $in: userIdsArray } }
+                    ]
+                }).toArray()
+                
+                for (const user of users) {
+                    const id = user._id.toString ? user._id.toString() : String(user._id)
+                    usersMap.set(id, user)
+                }
+            }
+            
+            // Populate user data
+            for (const post of posts) {
+                if (post.by?._id) {
+                    const id = post.by._id.toString ? post.by._id.toString() : String(post.by._id)
+                    const user = usersMap.get(id)
+                    if (user) {
+                        post.by = {
+                            _id: id,
+                            fullname: user.fullname,
+                            username: user.username,
+                            imgUrl: user.imgUrl
+                        }
+                    }
+                }
+                
+                if (post.comments) {
+                    for (const comment of post.comments) {
+                        if (comment.by?._id) {
+                            const id = comment.by._id.toString ? comment.by._id.toString() : String(comment.by._id)
+                            const commentUser = usersMap.get(id)
+                            if (commentUser) {
+                                comment.by = {
+                                    _id: id,
+                                    fullname: commentUser.fullname,
+                                    username: commentUser.username,
+                                    imgUrl: commentUser.imgUrl
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
         return posts
     } catch (err) {
         logger.error(`while finding posts by userId: ${userId}`, err)

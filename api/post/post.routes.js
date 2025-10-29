@@ -1,9 +1,10 @@
 import express from 'express'
-import { getPost, getPosts, savePost, deletePost, addPostMsg, updatePostLike, deletePostMsg } from './post.controller.js'
+import { getPost, getPosts, getPostsByUserId, savePost, deletePost, addPostMsg, updatePostLike, deletePostMsg } from './post.controller.js'
 
 const router = express.Router()
 
 router.get('/', getPosts)
+router.get('/user/:userId', getPostsByUserId)
 router.get('/:id', getPost)
 router.post('/', savePost)
 router.put('/:id', savePost)
