@@ -8,6 +8,7 @@ import cookieParser from 'cookie-parser'
 import { authRoutes } from './api/auth/auth.routes.js'
 import { userRoutes } from './api/user/user.routes.js'
 import { postRoutes } from './api/post/post.routes.js'
+import { seedRoutes } from './api/seed/seed.routes.js'
 import { setupSocketAPI } from './services/socket.service.js'
 
 import { setupAsyncLocalStorage } from './middlewares/setupAls.middleware.js'
@@ -32,7 +33,9 @@ const corsOptions = {
         'http://127.0.0.1:5174',
         'http://127.0.0.1:5175'
     ].filter(Boolean),
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
 }
 app.use(cors(corsOptions))
 
@@ -44,6 +47,7 @@ app.all('*all', setupAsyncLocalStorage)
 app.use('/api/auth', authRoutes)
 app.use('/api/user', userRoutes)
 app.use('/api/post', postRoutes)
+app.use('/api/seed', seedRoutes)
 
 setupSocketAPI(server)
 
