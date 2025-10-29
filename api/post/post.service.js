@@ -25,14 +25,26 @@ async function query(filterBy = {}) {
         const usersCollection = await dbService.getCollection('user')
         for (const post of posts) {
             if (post.by?._id) {
-                const user = await usersCollection.findOne({ _id: post.by._id })
+                // Try to find user by ID - handle both ObjectId and string IDs
+                let user
+                try {
+                    // Try as ObjectId first
+                    user = await usersCollection.findOne({ _id: ObjectId.createFromHexString(post.by._id) })
+                } catch {
+                    // If that fails, try as string
+                    user = await usersCollection.findOne({ _id: post.by._id })
+                }
+                
                 if (user) {
                     post.by = {
-                        _id: user._id.toString(),
+                        _id: (user._id.toString ? user._id.toString() : user._id),
                         fullname: user.fullname,
                         username: user.username,
                         imgUrl: user.imgUrl
                     }
+                } else {
+                    // Keep original by data if user not found (for backward compatibility)
+                    post.by._id = post.by._id.toString ? post.by._id.toString() : post.by._id
                 }
             }
             
@@ -40,14 +52,26 @@ async function query(filterBy = {}) {
             if (post.comments) {
                 for (const comment of post.comments) {
                     if (comment.by?._id) {
-                        const commentUser = await usersCollection.findOne({ _id: comment.by._id })
+                        // Try to find user by ID - handle both ObjectId and string IDs
+                        let commentUser
+                        try {
+                            // Try as ObjectId first
+                            commentUser = await usersCollection.findOne({ _id: ObjectId.createFromHexString(comment.by._id) })
+                        } catch {
+                            // If that fails, try as string
+                            commentUser = await usersCollection.findOne({ _id: comment.by._id })
+                        }
+                        
                         if (commentUser) {
                             comment.by = {
-                                _id: commentUser._id.toString(),
+                                _id: (commentUser._id.toString ? commentUser._id.toString() : commentUser._id),
                                 fullname: commentUser.fullname,
                                 username: commentUser.username,
                                 imgUrl: commentUser.imgUrl
                             }
+                        } else {
+                            // Keep original by data if user not found
+                            comment.by._id = comment.by._id.toString ? comment.by._id.toString() : comment.by._id
                         }
                     }
                 }
