@@ -20,7 +20,9 @@ export async function seedDatabase(req, res) {
             success: true, 
             message: 'Database seeded successfully',
             users: result.usersCount,
-            posts: result.postsCount 
+            posts: result.postsCount,
+            comments: result.commentsCount,
+            likes: result.likesCount
         })
     } catch (err) {
         logger.error('Error seeding database via API', err)
