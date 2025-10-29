@@ -144,6 +144,22 @@ async function toggleFollow(loggedInUserId, userIdToFollow) {
     try {
         const collection = await dbService.getCollection('user')
         
+        // Prevent self-follow
+        const normalizeId = (id) => {
+            // Convert ObjectId to string, or keep string as-is
+            if (id && typeof id === 'object' && id.toString) {
+                return id.toString()
+            }
+            return String(id)
+        }
+        
+        const loggedInUserIdStr = normalizeId(loggedInUserId)
+        const userIdToFollowStr = normalizeId(userIdToFollow)
+        
+        if (loggedInUserIdStr === userIdToFollowStr) {
+            throw new Error('Cannot follow yourself')
+        }
+        
         // Helper to get ObjectId or use string
         const getObjectId = (id) => {
             try {
@@ -161,7 +177,10 @@ async function toggleFollow(loggedInUserId, userIdToFollow) {
         
         if (!loggedInUser || !targetUser) throw new Error('User not found')
         
-        const isFollowing = loggedInUser.following?.includes(userIdToFollow) || false
+        // Check if following using normalized IDs
+        const following = loggedInUser.following || []
+        const followingIdsStr = following.map(normalizeId)
+        const isFollowing = followingIdsStr.includes(userIdToFollowStr)
         
         // Toggle follow status
         if (isFollowing) {
