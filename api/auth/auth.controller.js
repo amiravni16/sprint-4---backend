@@ -10,7 +10,8 @@ export async function login(req, res) {
         logger.info('User login: ', user)
 
         res.cookie('loginToken', loginToken, { sameSite: 'None', secure: true, httpOnly: true })
-        res.json(user)
+        // Also return token for header-based auth (helps Incognito/mobile)
+        res.json({ user, token: loginToken })
     } catch (err) {
         logger.error('Failed to Login ' + err)
         res.status(401).send({ err: 'Failed to Login' })
@@ -32,7 +33,7 @@ export async function signup(req, res) {
 
         const loginToken = authService.getLoginToken(user)
         res.cookie('loginToken', loginToken, { sameSite: 'None', secure: true, httpOnly: true })
-        res.json(user)
+        res.json({ user, token: loginToken })
     } catch (err) {
         logger.error('Failed to signup ' + err)
         res.status(400).send({ err: 'Failed to signup' })
