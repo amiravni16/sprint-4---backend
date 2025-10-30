@@ -159,21 +159,25 @@ async function getById(postId) {
 async function getByUserId(userId) {
     try {
         const collection = await dbService.getCollection('post')
-        
-        // Try to find posts matching the userId - handle both ObjectId and string IDs
-        let posts
-        try {
-            // Try as ObjectId first
-            const objectId = ObjectId.createFromHexString(userId)
-            posts = await collection.find({ 'by._id': objectId }).sort({ createdAt: -1 }).toArray()
-            if (posts.length === 0) {
-                // Fallback to string
-                posts = await collection.find({ 'by._id': userId }).sort({ createdAt: -1 }).toArray()
-            }
-        } catch {
-            // If not ObjectId, try as string
-            posts = await collection.find({ 'by._id': userId }).sort({ createdAt: -1 }).toArray()
+        const usersCollection = await dbService.getCollection('user')
+
+        // Prepare criteria that covers legacy data as well
+        const orCriteria = []
+        // Match by ObjectId
+        if (userId && userId.length === 24 && /^[0-9a-fA-F]{24}$/.test(userId)) {
+            try {
+                orCriteria.push({ 'by._id': ObjectId.createFromHexString(userId) })
+            } catch {}
         }
+        // Match by string id
+        orCriteria.push({ 'by._id': userId })
+        // Also match by username (legacy posts)
+        const userDoc = await usersCollection.findOne({ _id: (userId.length === 24 && /^[0-9a-fA-F]{24}$/.test(userId)) ? ObjectId.createFromHexString(userId) : userId })
+        if (userDoc?.username) {
+            orCriteria.push({ 'by.username': userDoc.username })
+        }
+
+        const posts = await collection.find({ $or: orCriteria }).sort({ createdAt: -1 }).toArray()
         
         // Populate user data for posts and comments (using optimized batch method)
         if (posts.length > 0) {
