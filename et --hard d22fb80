@@ -1,0 +1,38 @@
+[33m5bf8934[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Trigger backend redeploy - fix following array normalization
+[33m3fed117[m Fix: Ensure getByUsername returns full following array (15 users for amir.avni)
+[33m10949cc[m Debug user following bug
+[33mb489fd6[m Add import-users and generate-posts scripts to package.json for improved user data management and post generation capabilities.
+[33mb44bbf2[m Add fix-all-permanent script to package.json and enhance seedService to check for existing users before creation, ensuring only missing users are generated for improved data integrity.
+[33me7c491e[m Refactor seedService to preserve existing user data during seeding, ensuring new users are only created if they do not already exist. Update follow relationships to maintain integrity for both new and existing users, enhancing overall data consistency.
+[33me0cec7f[m Update user generation logic in seedService to reflect accurate total count, changing comments for clarity and ensuring consistent user creation with 101 users (including amir.avni).
+[33mb359777[m Add deterministic selection logic in seedService for consistent user data generation, ensuring same usernames, fullnames, and bios for identical user indices. Implement collision handling to maintain uniqueness while preserving deterministic behavior.
+[33m94249e2[m Refactor seedService to enhance user ID normalization and ensure consistent handling of followers and following relationships, while removing deprecated scripts for improved codebase clarity.
+[33ma4df88f[m Enhance user service to normalize user IDs and improve data consistency for followers and following arrays, ensuring consistent frontend handling.
+[33m917c32d[m Add fix-followers script to package.json and enhance seedService to ensure bidirectional follow relationships are accurately established, preventing duplicates and improving user ID normalization.
+[33mb1ad6ea[m Refactor seed script to utilize seedService for database seeding, enhancing user, post, comment, and like insertion with improved logging and error handling.
+[33mc894aad[m Add check-users script to package.json and improve user retrieval logic in getUsers function for better filtering and logging
+[33mbe37d2c[m Add fix-user-following script to package.json and enhance follow relationship generation logic in seed service for deterministic user following counts
+[33m5b24ba9[m Add fix-following script to package.json and improve follow relationship generation logic in seed service
+[33m396e18e[m Trigger redeploy after reverting Unsplash changes
+[33ma270841[m Update image fetching logic in Pexels API integration to prioritize original resolution images for improved quality, with fallbacks to high-resolution alternatives.
+[33md22fb80[m Refactor getByUserId function to enhance post retrieval by supporting both ObjectId and string user IDs, including legacy username matching for improved query accuracy
+[33m5eb028e[m Refactor login and signup responses to include user data and login token for improved header-based authentication
+[33m8904bd2[m Enhance security by adding httpOnly flag to loginToken cookies and improve token retrieval logic from both cookies and Authorization header
+[33m1e8fec2[m Expand post caption templates for unique captions on every post
+[33me96cfab[m Integrate Pexels API with rate limit protection - fetch efficiently with max per_page
+[33maf6c25f[m Switch to Picsum Photos for 100% reliable image loading
+[33m752b779[m Clean up unused variable in image assignment
+[33m7e92bff[m Expand image collection to 100+ unique stable Unsplash images with sequential assignment
+[33md2792f5[m Optimize post queries with batch user fetching and fix getByUserId for user profiles
+[33mbf7ef49[m Fix post service to handle both ObjectId and string user IDs when populating author data
+[33m0bb5884[m Improve seed endpoint logic for token handling
+[33mb885f4d[m Generate 100 users with 9+ posts each, 10-20 comments per post, varying likes
+[33m3385c0d[m Allow seed endpoint without token when SEED_SECRET not set
+[33mbbaf3a9[m Prevent self-follow and fix ID comparison in suggested users
+[33m265015c[m Add seed endpoint to populate database on Render
+[33m835802e[m Fix seed script to use proper bcrypt hashing
+[33ma78342a[m Fix CORS to allow production frontend domain
+[33m34b6a77[m Update database name in development and production configurations from 'instagram_db' to 'photograph_db'
+[33m3e821cf[m Add deployment guide for Render.com, including MongoDB Atlas setup and connection instructions for backend and frontend services.
+[33m7f5fbcb[m Update project structure and functionality: add dotenv support, implement user follow/save features, enhance README, and remove unused Postman collection.
+[33mc23ea58[m Initialize repository with starter data
